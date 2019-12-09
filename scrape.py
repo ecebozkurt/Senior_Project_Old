@@ -16,7 +16,6 @@ def construct_url(composer_last_name, piece):
     return "https://www.google.com/search?q=" + user_keywords
 
 
-# TODO Gracefully Exit instead of the string written
 # TODO Description
 def http_requests(url):
     http_response = requests.get(url)
@@ -43,8 +42,9 @@ def parse_google_search(http_response):
             index = url_string_clean.index("&")
             url_string_clean = url_string_clean[:index]
 
-            # make sure the search result does not include a youtube link or a google sign up
-            if "youtube" not in url_string_clean and "google" not in url_string_clean:
+            # make sure the search result does not include a youtube link or a google sign up/sign in
+            if "youtube" not in url_string_clean and "google" not in url_string_clean and \
+                    "amazon" not in url_string_clean and "prestomusic" not in url_string_clean:
                 search_results.append(url_string_clean)
 
     return search_results
@@ -55,15 +55,99 @@ def clean_html_text(http_response):
     soup = BeautifulSoup(http_response.text, 'html.parser')
     # get rid of Javascript and CSS elements
     [script.extract() for script in soup(['script', 'style'])]
-    # find the main article
-    body_text = soup.findAll('article')
-    if body_text:
-        # get rid of the html tags
-        text = body_text[0].get_text()
-    else:
-        text = soup.get_text()
-
+    text = soup.get_text()
     return text
+
+
+# TODO Description
+def gramophone_clean(text):
+    strip_arr = ["Facebook", "Instagram", "Youtube", "YouTube", "Skip to main content", "Subscribe", "Magazine", "Reviews",
+                "Podcast", "Apple", "Twitter", "Archive", "Forum", "Music", "Composers", "Artists", "Features", "Blogs",
+                 "Contact Us", "Advertise", "House Rules", "Privacy Policy", "Terms & Conditions", "Latest issue",
+                 "Read Review", "pf"]
+
+    # for Deutsche Gramophon Remove everything after the Follow us text.
+    text, sep, tail = text.partition('Follow us')
+    head, sep, text = text.partition('No 1')
+
+    for item in strip_arr:
+        text = text.replace(item, "")
+
+    return sep + text
+
+
+# TODO Description
+def talk_classical_clean(text):
+    strip_arr = ["View Profile", "View Forum Posts", "View Blog Entries", "Reply With Quote", "Senior Member",
+                 "Junior Member", "Banned", "Visit Homepage"]
+    # start after the first forum entry
+    head, sep, text = text.partition("#1")
+    text, sep, tail = text.partition("Jump to page:")
+
+    for item in strip_arr:
+        text = text.replace(item, "")
+
+    text_arr = text.split("Join Date")
+    new_text_arr = []
+    for item in text_arr:
+        item = item.replace('\n', '')
+        item = item.replace('\t', ' ')
+        items = item.split("Likes (Received)")
+        for i in items:
+            new_text_arr.append(i)
+
+    final_arr = []
+    for item in new_text_arr:
+        if "Likes (Given)" not in item:
+            final_arr.append(item)
+
+    # after we are done with getting rid of the unnecessary values, join the text delimited by \ns
+    text = "\n".join(final_arr)
+    return text
+
+
+# TODO Description
+def nyt_clean(text):
+    strip_arr = ["Share This Page", "Continue reading the main story", "Advertisement", "Credit", "Associated Press",
+                 "Photo" "Opt out or contact us anytime"]
+    head, sep, text = text.partition("Continue reading the main story")
+
+    # get rid of subscription popup
+    head, sep, tail = text.partition("Newsletter")
+    head2, sep, tail2 = tail.partition("Opt out or contact us anytime")
+    text = head + tail2
+
+    for item in strip_arr:
+        text = text.replace(item, "")
+
+    # get rid of the parts that are not the main article
+    head, sep, tail = text.partition("Subscribe")
+    text = head
+    text = text.strip()
+    return text
+
+
+# TODO Description
+def wfmt_clean(text):
+    head, sep, text = text.partition("Share this Post")
+    text, sep, tail = text.partition("Related Posts")
+    text = text.strip()
+    return text
+
+
+# TODO Description
+def quora_clean(text):
+    text_arr = text.split("answer views")
+    print(text_arr)
+    return text
+
+
+# TODO Description
+def look_for_piece(text, composer, piece):
+    if composer in text.lower() and piece in text.lower():
+        return True
+    else:
+        return False
 
 
 # TODO Description
@@ -92,12 +176,28 @@ if __name__ == '__main__':
     response = http_requests(google_search_url)
     # parse the google search results and return a list of urls in the order in which they are displayed
     url_results = parse_google_search(response)
-    # get response from the first google search result url
-    first_search_response = http_requests(url_results[0])
-    clean_text = clean_html_text(first_search_response)
+    # for each google search result get the response, and clean the text
+    count = 1
+    for url_result in url_results:
+        search_response = http_requests(url_result)
+        if type(search_response) != str:
+            clean_text = clean_html_text(search_response)
 
-    print(first_search_response.text)
-    #write_to_file(composer_name, piece_name, str(clean_text))
+            if "gramophone" in url_result:
+                clean_text = gramophone_clean(clean_text)
+            elif "talkclassical" in url_result:
+                clean_text = talk_classical_clean(clean_text)
+            elif "nytimes" in url_result:
+                clean_text = nyt_clean(clean_text)
+            elif "wfmt" in url_result:
+                clean_text = wfmt_clean(clean_text)
+            elif "quora" in url_result:
+                clean_text = quora_clean(clean_text)
+                
+            # if the article actually includes the piece that the user is searching for
+            if look_for_piece(clean_text, composer_name, piece_name):
+                write_to_file(composer_name, piece_name + str(count), str(clean_text))
+                # do_nlp(clean_text)
+                count += 1
 
-    #do_nlp(clean_text)
 
