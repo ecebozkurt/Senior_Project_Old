@@ -1,23 +1,25 @@
 import requests
 from bs4 import BeautifulSoup
 import nltk
+import unidecode
 
 
 # TODO Edit To Actually Get User Input
 # TODO Description
 def get_keywords_from_user():
-    return "chopin", "etudes"
+    return "beethoven symphony 9"
 
 
 # TODO Description
-def construct_url(composer_last_name, piece):
-    user_keywords = "best recording " + composer_last_name + "+" + piece
+def construct_url(piece):
+    user_keywords = "best recording " + piece
     user_keywords = user_keywords.replace(" ", "+")
     return "https://www.google.com/search?q=" + user_keywords
 
 
 # TODO Description
 def http_requests(url):
+    # get rid of any special characters that might appear in the link
     http_response = requests.get(url)
     if http_response.status_code == 200:
         return http_response
@@ -56,7 +58,9 @@ def clean_html_text(http_response):
     # get rid of Javascript and CSS elements
     [script.extract() for script in soup(['script', 'style'])]
     text = soup.get_text()
-    return text
+    # get rid of special accents for easier search
+    normal = unidecode.unidecode(text)
+    return normal
 
 
 # TODO Description
@@ -137,17 +141,49 @@ def wfmt_clean(text):
 
 # TODO Description
 def quora_clean(text):
-    text_arr = text.split("answer views")
-    print(text_arr)
+    text_arr = text.split("views")
+    final_arr = []
+    for item in text_arr:
+        if "Related Questions" not in item and "Upvoters" not in item:
+            final_arr.append(item)
+
+    text = "\n\n".join(final_arr)
     return text
 
 
 # TODO Description
-def look_for_piece(text, composer, piece):
-    if composer in text.lower() and piece in text.lower():
-        return True
-    else:
-        return False
+def classicfm_clean(text):
+    head, sep, text = text.partition("More Composers")
+    text, sep, tail = text.partition("News")
+    text = text.strip()
+    return text
+
+
+# TODO Description
+def spectator_clean(text):
+    head, sep, text = text.partition("Whatsapp")
+    text, sep, tail = text.partition("See also")
+    text = text.strip()
+    return text
+
+
+# TODO Description
+def classical_music_clean(text):
+    head, sep, text = text.partition("Rating:")
+    text, sep, tail = text.partition("Article Type")
+    text = text.strip()
+    return text
+
+
+# TODO Description
+def look_for_piece(text, piece):
+    piece_separate = piece.split(" ")
+    for item in piece_separate:
+        if item in text.lower():
+            continue
+        else:
+            return False
+    return True
 
 
 # TODO Description
@@ -161,8 +197,8 @@ def do_nlp(text):
 
 
 # TODO Description
-def write_to_file(composer, piece, results):
-    file_name = composer + piece + ".txt"
+def write_to_file(piece, results):
+    file_name = piece.replace(' ', "_") + ".txt"
     f = open(file_name, "a")
     f.write(results)
     f.close()
@@ -171,8 +207,8 @@ def write_to_file(composer, piece, results):
 
 if __name__ == '__main__':
     # construct the google search url by getting the keywords from the user
-    composer_name, piece_name = get_keywords_from_user()
-    google_search_url = construct_url(composer_name, piece_name)
+    piece_name = get_keywords_from_user()
+    google_search_url = construct_url(piece_name)
     response = http_requests(google_search_url)
     # parse the google search results and return a list of urls in the order in which they are displayed
     url_results = parse_google_search(response)
@@ -193,10 +229,18 @@ if __name__ == '__main__':
                 clean_text = wfmt_clean(clean_text)
             elif "quora" in url_result:
                 clean_text = quora_clean(clean_text)
-                
+            elif "classicfm" in url_result:
+                clean_text = classicfm_clean(clean_text)
+            elif "spectator" in url_result:
+                clean_text = spectator_clean(clean_text)
+            elif "classical-music" in url_result:
+                clean_text = classical_music_clean(clean_text)
+            else:
+                continue
+
             # if the article actually includes the piece that the user is searching for
-            if look_for_piece(clean_text, composer_name, piece_name):
-                write_to_file(composer_name, piece_name + str(count), str(clean_text))
+            if look_for_piece(clean_text, piece_name):
+                write_to_file(piece_name + "_" + str(count), str(clean_text))
                 # do_nlp(clean_text)
                 count += 1
 
