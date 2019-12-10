@@ -4,12 +4,6 @@ import unidecode
 import os
 
 
-# TODO Edit To Actually Get User Input
-# TODO Description
-def get_keywords_from_user():
-    return "beethoven symphony 9"
-
-
 # TODO Description
 def construct_url(piece):
     user_keywords = "best recording " + piece
@@ -207,9 +201,9 @@ def make_directory(piece):
         return
 
 
-if __name__ == '__main__':
-    # construct the google search url by getting the keywords from the user
-    piece_name = get_keywords_from_user()
+# TODO Add Description
+def scrape_main(piece_name):
+    # construct the google search url
     google_search_url = construct_url(piece_name)
     response = http_requests(google_search_url)
     # parse the google search results and return a list of urls in the order in which they are displayed
