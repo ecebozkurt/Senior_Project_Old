@@ -26,15 +26,18 @@ if __name__ == '__main__':
 
     piece = get_keywords_from_user()
     dir_name = piece.replace(' ', "_")
-    os.chdir(dir_name)
-
     # scrape data, add it inside directory as text files
     scrape.scrape_main(piece)
 
+    os.chdir(dir_name)
     # open each file into a string and start processing
-    for filename in os.listdir(dir_name):
+    for filename in os.listdir(os.getcwd()):
         with open(filename, 'r') as file:
             data = file.read()
-            
+            sentences = nltk.tokenize.sent_tokenize(data)
+
+    # move back up to the parent directory
+    os.chdir("..")
+
 
 
