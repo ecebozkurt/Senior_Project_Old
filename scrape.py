@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
-import nltk
 import unidecode
+import os
 
 
 # TODO Edit To Actually Get User Input
@@ -187,22 +187,24 @@ def look_for_piece(text, piece):
 
 
 # TODO Description
-def do_nlp(text):
-    sentences = nltk.tokenize.sent_tokenize(text)
-    tokens = [nltk.tokenize.word_tokenize(sentence) for sentence in sentences]
-    pos_tagged_tokens = [nltk.pos_tag(token) for token in tokens]
-    ne_chunks = nltk.ne_chunk_sents(pos_tagged_tokens)
-    print(list(ne_chunks)[0].pprint())
-    return ne_chunks
-
-
-# TODO Description
 def write_to_file(piece, results):
+
     file_name = piece.replace(' ', "_") + ".txt"
     f = open(file_name, "a")
     f.write(results)
     f.close()
     return f
+
+
+# TODO Description
+def make_directory(piece):
+    dir_name = piece.replace(' ', "_")
+    try:
+        os.mkdir(dir_name)
+        os.chdir(dir_name)
+    except FileExistsError:
+        os.chdir(dir_name)
+        return
 
 
 if __name__ == '__main__':
@@ -214,6 +216,9 @@ if __name__ == '__main__':
     url_results = parse_google_search(response)
     # for each google search result get the response, and clean the text
     count = 1
+    # make a directory for all of the files that will have data pulled from the web
+    make_directory(piece_name)
+
     for url_result in url_results:
         search_response = http_requests(url_result)
         if type(search_response) != str:
@@ -241,7 +246,11 @@ if __name__ == '__main__':
             # if the article actually includes the piece that the user is searching for
             if look_for_piece(clean_text, piece_name):
                 write_to_file(piece_name + "_" + str(count), str(clean_text))
-                # do_nlp(clean_text)
                 count += 1
+
+    # move back up to the parent directory
+    os.chdir('..')
+
+
 
 
