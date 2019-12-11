@@ -59,18 +59,10 @@ def clean_html_text(http_response):
 
 # TODO Description
 def gramophone_clean(text):
-    strip_arr = ["Facebook", "Instagram", "Youtube", "YouTube", "Skip to main content", "Subscribe", "Magazine", "Reviews",
-                "Podcast", "Apple", "Twitter", "Archive", "Forum", "Music", "Composers", "Artists", "Features", "Blogs",
-                 "Contact Us", "Advertise", "House Rules", "Privacy Policy", "Terms & Conditions", "Latest issue",
-                 "Read Review", "pf"]
-
     # for Deutsche Gramophon Remove everything after the Follow us text.
     text, sep, tail = text.partition('Follow us')
     head, sep, text = text.partition('No 1')
-
-    for item in strip_arr:
-        text = text.replace(item, "")
-
+    text = text.replace("\n \n", "\n\n")
     return sep + text
 
 
@@ -88,16 +80,52 @@ def talk_classical_clean(text):
     text_arr = text.split("Join Date")
     new_text_arr = []
     for item in text_arr:
-        item = item.replace('\n', '')
-        item = item.replace('\t', ' ')
+        item = item.replace('\n', '').replace('\t', ' ').replace('\r', ' ').strip()
         items = item.split("Likes (Received)")
-        for i in items:
-            new_text_arr.append(i)
+        [new_text_arr.append(i) for i in items]
+
+    # also split by if the string has a date in it.
+    wo_date_arr = []
+    for item in new_text_arr:
+        if "Dec" in item:
+            item_parts = item.split("Dec")
+            wo_date_arr.append(item_parts[0])
+        elif "Jan" in item:
+            item_parts = item.split("Jan")
+            wo_date_arr.append(item_parts[0])
+        elif "Feb" in item:
+            item_parts = item.split("Feb")
+            wo_date_arr.append(item_parts[0])
+        elif "Mar" in item:
+            item_parts = item.split("Mar")
+            wo_date_arr.append(item_parts[0])
+        elif "Apr" in item:
+            item_parts = item.split("Apr")
+            wo_date_arr.append(item_parts[0])
+        elif "May" in item:
+            item_parts = item.split("May")
+            wo_date_arr.append(item_parts[0])
+        elif "Jun" in item:
+            item_parts = item.split("Jun")
+            wo_date_arr.append(item_parts[0])
+        elif "Jul" in item:
+            item_parts = item.split("Jul")
+            wo_date_arr.append(item_parts[0])
+        elif "Aug" in item:
+            item_parts = item.split("Aug")
+            wo_date_arr.append(item_parts[0])
+        elif "Sep" in item:
+            item_parts = item.split("Sep")
+            wo_date_arr.append(item_parts[0])
+        elif "Oct" in item:
+            item_parts = item.split("Oct")
+            wo_date_arr.append(item_parts[0])
+        elif "Nov" in item:
+            item_parts = item.split("Nov")
+            wo_date_arr.append(item_parts[0])
 
     final_arr = []
-    for item in new_text_arr:
-        if "Likes (Given)" not in item:
-            final_arr.append(item)
+    [final_arr.append(item) for item in wo_date_arr if "Likes (Given)" not in item]
 
     # after we are done with getting rid of the unnecessary values, join the text delimited by \ns
     text = "\n".join(final_arr)
@@ -137,10 +165,7 @@ def wfmt_clean(text):
 def quora_clean(text):
     text_arr = text.split("views")
     final_arr = []
-    for item in text_arr:
-        if "Related Questions" not in item and "Upvoters" not in item:
-            final_arr.append(item)
-
+    [final_arr.append(item) for item in text_arr if "Related Questions" not in item and "Upvoters" not in item]
     text = "\n\n".join(final_arr)
     return text
 
@@ -182,12 +207,12 @@ def look_for_piece(text, piece):
 
 # TODO Description
 def write_to_file(piece, results):
-
     file_name = piece.replace(' ', "_") + ".txt"
     f = open(file_name, "a")
+    # in case there is already data in the file, we want to get rid of it before overwriting the most recent data
+    f.truncate(0)
     f.write(results)
     f.close()
-    return f
 
 
 # TODO Description

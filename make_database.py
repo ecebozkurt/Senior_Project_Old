@@ -61,11 +61,8 @@ def get_strings():
     performer_str = get_data("https://www.arkivmusic.com/classical/NameList?featured=1&role_wanted=2", "Performers")
     ensemble_str = get_data("https://www.arkivmusic.com/classical/NameList?featured=1&role_wanted=4", "Ensembles")
 
-    conductor_str, conductor_str_last = separate_last_name(conductor_str)
+    performer_str += conductor_str
     performer_str, performer_str_last = separate_last_name(performer_str)
-
-    conductor_list = switch_last_first(make_list(conductor_str))
-    conductor_last_list = make_list(conductor_str_last)
 
     performer_list = switch_last_first(make_list(performer_str))
     performer_last_list = make_list(performer_str_last)
@@ -73,7 +70,7 @@ def get_strings():
     label_list = make_list(label_str)
     ensemble_list = make_list(ensemble_str)
 
-    return conductor_list, conductor_last_list, performer_list, performer_last_list, label_list, ensemble_list
+    return performer_list, performer_last_list, label_list, ensemble_list
 
 
 
